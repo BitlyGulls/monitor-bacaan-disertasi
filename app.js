@@ -14,15 +14,19 @@
  const model=JagadProgress(items.map(i=>i.id));let progress={},storageOK=true;
  const payload=()=>({schema:SCHEMA,version:VERSION,exportedAt:new Date().toISOString(),entries:progress});
  function message(text,warn=false){$('storage-status').textContent=text;$('storage-status').classList.toggle('warning',warn);}
- function save(notify=true){
+ function save(){
    try{localStorage.setItem(KEY,JSON.stringify(payload()));storageOK=true;message('Kedua tahap tersimpan otomatis di browser ini.');}
    catch{storageOK=false;message('Penyimpanan browser tidak tersedia. Gunakan Ekspor progres sebelum menutup halaman.',true);}
-   if(notify)window.dispatchEvent(new Event('reading-change'));
+
+ }
+ function saveChange(before){
+   save();
+   window.dispatchEvent(new CustomEvent('reading-change',{detail:model.diff(before,progress)}));
  }
  try{
    const saved=localStorage.getItem(KEY);
    if(saved){const data=JSON.parse(saved);progress=model.validate(data);if(data.version===1&&!localStorage.getItem(KEY+'-before-stages'))localStorage.setItem(KEY+'-before-stages',saved);}
-   save(false);
+   save();
  }catch{storageOK=false;message('Progres tersimpan tidak dapat dimuat. Data lama tidak ditimpa. Gunakan impor cadangan yang valid.',true);}
  function makeBar(label,total){
    const row=document.createElement('div');row.className='stage-bar';
@@ -42,7 +46,7 @@
      const cb=controls.querySelector('[data-stage="'+stage.key+'"]');
      cb.setAttribute('aria-label','Sudah '+stage.name.toLowerCase()+': '+item.title);
      const date=controls.querySelector('[data-stage-date="'+stage.key+'"]');item.controls[stage.key]={checkbox:cb,date};
-     cb.addEventListener('change',()=>{progress[item.id]={...(progress[item.id]||model.empty()),[stage.key]:{completed:cb.checked,updatedAt:new Date().toISOString()}};save();render();});
+     cb.addEventListener('change',()=>{const before={...progress};progress[item.id]={...(progress[item.id]||model.empty()),[stage.key]:{completed:cb.checked,updatedAt:new Date().toISOString()}};saveChange(before);render();});
    });
    item.legacy=item.article.querySelector('.legacy-badge');
  });
@@ -74,11 +78,11 @@
    const file=event.target.files[0];if(!file)return;
    try{if(file.size>1000000)throw Error('Ukuran cadangan terlalu besar.');const imported=model.validate(JSON.parse(await file.text())),c=model.counts(imported);
      if(!confirm('Pulihkan cadangan: skimming '+c.skim+', deep reading '+c.deep+', centang lama belum diberi tahap '+c.legacy+'? Progres saat ini akan diganti. Ekspor terlebih dahulu bila ingin menyimpannya.'))return;
-     progress=imported;save();render();
+     const before=progress;progress=imported;saveChange(before);render();
    }catch(error){message('Impor gagal: '+error.message+' Progres saat ini tetap dipertahankan.',true);}finally{event.target.value='';}
  });
  window.addEventListener('storage',event=>{if(event.key===KEY){try{progress=event.newValue?model.validate(JSON.parse(event.newValue)):{};render();message('Progres diperbarui dari tab lain.');}catch{message('Perubahan dari tab lain tidak valid; progres saat ini dipertahankan.',true);}}});
- window.jagadReading={get:()=>JSON.parse(JSON.stringify(payload())),validate:model.validate,validatePatches:model.validatePatches,merge:model.merge,diff:model.diff,apply:entries=>{progress=model.validate({schema:SCHEMA,version:VERSION,entries});save(false);render();}};
+ window.jagadReading={get:()=>JSON.parse(JSON.stringify(payload())),validate:model.validate,validatePatches:model.validatePatches,merge:model.merge,diff:model.diff,apply:entries=>{progress=model.validate({schema:SCHEMA,version:VERSION,entries});save();render();}};
  function showPage(){
    const monitor=location.hash==='#monitor';
    $('checklist-page').hidden=monitor;$('monitor-page').hidden=!monitor;
