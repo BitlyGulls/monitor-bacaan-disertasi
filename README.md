@@ -14,22 +14,25 @@ Halaman awal langsung membuka **Checklist Bacaan**. Setiap artikel memuat dua ch
 
 Centang tersimpan di browser. Untuk memindahkan progres dari halaman lokal yang lama, pilih **Ekspor progres** di halaman lama, kemudian **Impor progres** di web ini. Cadangan versi 1 tetap diterima: status lama **selesai dibaca** dipertahankan sebagai centang lama yang belum diberi tahap, tanpa dianggap otomatis telah *skimming* atau *deep reading*. Cadangan baru memakai format versi 2 dan mempertahankan tanggal masing-masing tahap. Migrasi penyimpanan browser juga menyimpan salinan data versi 1 pada kunci cadangan `jagad-must-read-v1-progress-before-stages`.
 
-## Sinkronisasi antarperangkat
+## Sinkronisasi Google Drive
 
-Snapshot progres bersama disimpan sebagai `progress.json` pada cabang `reading-progress`. Pengunjung dapat membacanya; penulisan memerlukan token milik BitlyGulls. Kode, panduan, dan progres pada repositori publik dapat dilihat siapa saja.
+1. Buka monitor pada browser yang sudah memiliki progres, lalu pilih **Hubungkan Google Drive**. Centang lokal ikut digabung pada koneksi pertama.
+2. Di perangkat lain, buka URL yang sama, hubungkan Google Drive, dan pilih akun Google yang sama. Tunggu status **Tersinkron ke Google Drive**.
+3. Perubahan dikirim otomatis selama sesi Google aktif. Perubahan luring ikut tersimpan di browser dan dikirim ketika koneksi kembali. Bila sesi kedaluwarsa atau halaman dimuat ulang, hubungkan Google Drive kembali.
+4. Untuk memindahkan progres dari berkas HTML atau browser berbeda, ekspor JSON di tempat asal dan impor di monitor. Impor mengganti progres saat ini sesuai dialog konfirmasi. Ekspor juga menyediakan cadangan yang bisa disimpan sebagai berkas biasa.
 
-1. Di GitHub, buat *fine-grained personal access token* dengan akses **hanya repositori ini**, serta izin **Contents: Read and write** dan masa berlaku sesuai kebutuhan.
-2. Buka **Sinkronisasi antarperangkat lewat GitHub** pada aplikasi dan masukkan token. Token hanya disimpan di memori tab, tidak dalam kode, URL, localStorage, atau berkas repositori. Hubungkan kembali setelah memuat ulang atau menutup tab.
-3. Setelah terhubung, perubahan dikirim otomatis. Buka URL web yang sama di perangkat lain untuk melihatnya. Untuk mengubah progres dari perangkat itu, hubungkan token di sana juga.
-4. Periksa status sinkronisasi. Jika internet terputus, perubahan tertunda disimpan lokal dan dikirim setelah koneksi kembali selama token masih terhubung. Ekspor JSON sebagai cadangan tambahan.
+Drive menyimpan riwayat perubahan di ruang data privat aplikasi (`appDataFolder`). Centang dan pembatalan centang digabung per artikel dan tahap. Jika dua perangkat mengubah tahap yang sama saat luring, waktu perubahan menentukan hasil akhir. Gunakan pengaturan waktu otomatis pada perangkat.
 
-Setiap penyimpanan mengambil snapshot terbaru sebelum mengirim perubahan lokal. Penggabungan dilakukan per tahap: perubahan *skimming* dan *deep reading* pada artikel yang sama dari perangkat berbeda tetap dipertahankan. Pada tahap yang sama, perubahan terakhir yang berhasil dikirim menang. Pembatalan centang juga disinkronkan. Konflik SHA dicoba ulang hingga tiga kali. Progres tidak mengandung token.
+### Konfigurasi Google Cloud
 
-Pengunjung tanpa token tidak dapat mengubah progres bersama. Centang mereka hanya tersimpan di browser masing-masing. Token dengan izin penulisan repositori ini juga dapat menulis berkas lain di repositori: batasi ke repositori ini dan jangan bagikan token.
+1. Buka [Google Cloud Console](https://console.cloud.google.com/), pilih proyek dan aktifkan [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com).
+2. Di Google Auth Platform, atur Branding, Audience dan Data Access. Untuk penggunaan pribadi dengan Audience External dalam mode Testing, tambahkan akun Google pemilik Drive sebagai test user. Gunakan cakupan `https://www.googleapis.com/auth/drive.appdata`.
+3. Buat OAuth Client ID tipe **Web application**. Tambahkan `https://bitlygulls.github.io` pada **Authorized JavaScript origins**. Alur ini memakai popup Google Identity Services.
+4. Isi atribut `content` pada elemen `drive-oauth-client` di `index.html` dengan Client ID. Simpan Client Secret di Google Cloud. Bila origin lokal dibutuhkan untuk pengujian, tambahkan origin localhost dengan port server pengujian yang dipakai.
 
 ## Publikasi
 
-GitHub Pages: cabang `main`, folder `/` (root). Berkas `.nojekyll` menonaktifkan pengolahan Jekyll. Tidak ada dependensi, layanan berbayar, atau proses build. Cabang progres terpisah agar perubahan centang tidak memicu publikasi ulang situs.
+GitHub Pages menggunakan cabang `main` dan folder root. Publikasi memakai berkas statis tanpa proses build. Penggunaan Drive membutuhkan Client ID yang dikonfigurasi sebelum publikasi.
 
 ## Isi bacaan
 
@@ -37,4 +40,4 @@ Pilihan bacaan berasal dari panduan Must Read_v1 tanggal 12 November 2026. Ini s
 
 PDF lokal, katalog berisi jalur sumber komputer, proposal, dan dokumen penelitian tidak disertakan. Judul membuka DOI penerbit atau pencarian judul apabila DOI belum terverifikasi. Akses teks lengkap mengikuti ketersediaan pada penerbit/perpustakaan.
 
-Referensi teknis: [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) dan [GitHub Contents API](https://docs.github.com/en/rest/repos/contents).
+Referensi teknis: [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) dan [Google Drive appDataFolder](https://developers.google.com/workspace/drive/api/guides/appdata).
