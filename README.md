@@ -1,6 +1,6 @@
 # Monitor Bacaan Disertasi Jagad
 
-Aplikasi web statis untuk dua checklist per artikel: **sudah *skimming*** dan **sudah *deep reading***, dengan grafik progres masing-masing pada 42 bacaan dan per kelompok, pencarian, serta ekspor–impor cadangan JSON.
+Aplikasi web statis dengan simpan manual ke Google Drive dan dua checklist per artikel: **sudah *skimming*** dan **sudah *deep reading***, dengan grafik progres masing-masing pada 42 bacaan dan per kelompok, pencarian, serta ekspor–impor cadangan JSON.
 
 ## Penggunaan
 
@@ -14,22 +14,35 @@ Halaman awal langsung membuka **Checklist Bacaan**. Setiap artikel memuat dua ch
 
 Centang tersimpan di browser. Untuk memindahkan progres dari halaman lokal yang lama, pilih **Ekspor progres** di halaman lama, kemudian **Impor progres** di web ini. Cadangan versi 1 tetap diterima: status lama **selesai dibaca** dipertahankan sebagai centang lama yang belum diberi tahap, tanpa dianggap otomatis telah *skimming* atau *deep reading*. Cadangan baru memakai format versi 2 dan mempertahankan tanggal masing-masing tahap. Migrasi penyimpanan browser juga menyimpan salinan data versi 1 pada kunci cadangan `jagad-must-read-v1-progress-before-stages`.
 
-## Sinkronisasi antarperangkat
+## Simpan dan lanjutkan melalui Google Drive
 
-Snapshot progres bersama disimpan sebagai `progress.json` pada cabang `reading-progress`. Pengunjung dapat membacanya; penulisan memerlukan token milik BitlyGulls. Kode, panduan, dan progres pada repositori publik dapat dilihat siapa saja.
+Alurnya mengikuti Planner Disertasi Jagad:
 
-1. Di GitHub, buat *fine-grained personal access token* dengan akses **hanya repositori ini**, serta izin **Contents: Read and write** dan masa berlaku sesuai kebutuhan.
-2. Buka **Sinkronisasi antarperangkat lewat GitHub** pada aplikasi dan masukkan token. Token hanya disimpan di memori tab, tidak dalam kode, URL, localStorage, atau berkas repositori. Hubungkan kembali setelah memuat ulang atau menutup tab.
-3. Setelah terhubung, perubahan dikirim otomatis. Buka URL web yang sama di perangkat lain untuk melihatnya. Untuk mengubah progres dari perangkat itu, hubungkan token di sana juga.
-4. Periksa status sinkronisasi. Jika internet terputus, perubahan tertunda disimpan lokal dan dikirim setelah koneksi kembali selama token masih terhubung. Ekspor JSON sebagai cadangan tambahan.
+1. Klik **Buka Google Drive**, lalu pilih akun Google. Aplikasi membuka simpanan bacaan terakhir dari akun tersebut.
+2. Centang *skimming* atau *deep reading*. Status berubah menjadi **Perubahan belum disimpan**.
+3. Klik **Simpan ke Google Drive** dan tunggu status **Tersimpan di Google Drive**.
+4. Pada perangkat lain, buka situs bacaan ini dan klik **Buka Google Drive** dengan akun yang sama.
+5. Gunakan **Muat ulang dari Drive** untuk mengambil simpanan terbaru. Ctrl+S atau Cmd+S juga menjalankan simpan ke Drive pada situs daring.
 
-Setiap penyimpanan mengambil snapshot terbaru sebelum mengirim perubahan lokal. Penggabungan dilakukan per tahap: perubahan *skimming* dan *deep reading* pada artikel yang sama dari perangkat berbeda tetap dipertahankan. Pada tahap yang sama, perubahan terakhir yang berhasil dikirim menang. Pembatalan centang juga disinkronkan. Konflik SHA dicoba ulang hingga tiga kali. Progres tidak mengandung token.
+**Tidak ada autosave ke Drive.** Mengubah centang, berpindah halaman, membuka tab, atau mengimpor JSON tidak mengunggah progres. Perubahan dikirim hanya melalui tombol Simpan, pilihan **Simpan versi ini** saat konflik, atau pintasan simpan.
 
-Pengunjung tanpa token tidak dapat mengubah progres bersama. Centang mereka hanya tersimpan di browser masing-masing. Token dengan izin penulisan repositori ini juga dapat menulis berkas lain di repositori: batasi ke repositori ini dan jangan bagikan token.
+Draf disimpan terpisah per akun pada browser. Draf lama tanpa akun tetap dipertahankan dan dapat dibawa ketika pertama kali membuka akun. Berpindah dari akun A ke B tidak menyalin draf A ke B. Setelah memuat ulang situs, buka Google Drive lagi untuk mengakses draf akun dan simpanannya.
+
+Jika versi Drive berbeda dari versi perangkat, pilih **Buka versi Drive** atau **Simpan versi ini**. Simpanan yang berubah membuat snapshot baru; snapshot sebelumnya tidak ditimpa. Dua penyimpanan serentak dapat sama-sama tersimpan, dan yang memiliki waktu pembuatan terbaru dibuka berikutnya. Belum tersedia pemilih riwayat snapshot. Buka versi terbaru sebelum mengedit dari perangkat lain.
+
+## Lokasi dan akses simpanan
+
+Progres bacaan disimpan di folder data aplikasi pribadi di Google Drive (`appDataFolder`), tersembunyi dari daftar berkas Drive biasa dan dibuka melalui web bacaan. Aplikasi meminta akses data aplikasinya serta identitas dan email akun, bukan akses seluruh dokumen Drive. Lihat [penjelasan Google](https://developers.google.com/workspace/drive/api/guides/appdata).
+
+Konfigurasi memakai klien OAuth publik yang sudah digunakan planner pada origin GitHub Pages yang sama. Bacaan memakai nama berkas `reading-jagad-must-read-v1.json` dan format `jagad-drive-reading-v1`; simpanan planner tetap terpisah. Token akses hanya berada di memori tab dan tidak masuk ke kode, GitHub, atau penyimpanan browser.
+
+Penyimpanan progres ke GitHub dengan personal access token telah diganti oleh Google Drive. Cabang `reading-progress` lama dipertahankan sebagai arsip, tetapi tidak dibaca atau ditulis oleh versi baru. Progres pribadi yang disimpan melalui aplikasi baru tidak masuk ke repositori publik. Setiap snapshot dibatasi 5 MB dan menggunakan kapasitas akun Google.
+
+Salinan HTML lokal tetap mendukung checklist, dua halaman, dan ekspor–impor JSON. Login dan penyimpanan Google Drive memerlukan situs daring. Untuk memindahkan draf dari HTML lokal, ekspor JSON, impor di situs daring, kemudian tekan **Simpan ke Google Drive**. Cadangkan data sebelum menghapus penyimpanan browser.
 
 ## Publikasi
 
-GitHub Pages: cabang `main`, folder `/` (root). Berkas `.nojekyll` menonaktifkan pengolahan Jekyll. Tidak ada dependensi, layanan berbayar, atau proses build. Cabang progres terpisah agar perubahan centang tidak memicu publikasi ulang situs.
+GitHub Pages: cabang `main`, folder `/` (root). Berkas `.nojekyll` menonaktifkan pengolahan Jekyll. Tidak ada dependensi, layanan berbayar, atau proses build. Progres tersimpan di Google Drive; menyimpan centang tidak memicu publikasi ulang situs.
 
 ## Isi bacaan
 

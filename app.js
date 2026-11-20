@@ -1,6 +1,6 @@
 (() => {
  'use strict';
- const KEY='jagad-must-read-v1-progress',SCHEMA='jagad-reading-progress',VERSION=2;
+ const KEY='jagad-must-read-v1-progress',SCHEMA='jagad-reading-progress',VERSION=2,PROJECT='jagad-must-read-v1';
  const $=id=>document.getElementById(id),articles=[...document.querySelectorAll('article')],groups=[];
  const stages=[{key:'skim',name:'Skimming'},{key:'deep',name:'Deep reading'}];
  const items=articles.map(article=>{
@@ -11,13 +11,14 @@
    const item={article,group,id:article.dataset.readingId||article.querySelector('h3 a').getAttribute('href'),title:article.querySelector('h3').textContent,controls:{}};
    group.items.push(item);return item;
  });
- const model=JagadProgress(items.map(i=>i.id));let progress={},storageOK=true;
+ const model=JagadProgress(items.map(i=>i.id));let progress={},storageOK=true,accountScope=null;
+ const storageKey=()=>KEY+(accountScope?':account:'+accountScope:'');
  const payload=()=>({schema:SCHEMA,version:VERSION,exportedAt:new Date().toISOString(),entries:progress});
  function message(text,warn=false){$('storage-status').textContent=text;$('storage-status').classList.toggle('warning',warn);}
  function save(notify=true){
-   try{localStorage.setItem(KEY,JSON.stringify(payload()));storageOK=true;message('Kedua tahap tersimpan otomatis di browser ini.');}
+   try{localStorage.setItem(storageKey(),JSON.stringify(payload()));storageOK=true;message('Draf tersimpan di browser ini. Tekan Simpan ke Google Drive untuk melanjutkan di perangkat lain.');}
    catch{storageOK=false;message('Penyimpanan browser tidak tersedia. Gunakan Ekspor progres sebelum menutup halaman.',true);}
-   if(notify)window.dispatchEvent(new Event('reading-change'));
+   if(notify)window.dispatchEvent(new CustomEvent('reading-change',{detail:{remote:false}}));
  }
  try{
    const saved=localStorage.getItem(KEY);
@@ -77,8 +78,24 @@
      progress=imported;save();render();
    }catch(error){message('Impor gagal: '+error.message+' Progres saat ini tetap dipertahankan.',true);}finally{event.target.value='';}
  });
- window.addEventListener('storage',event=>{if(event.key===KEY){try{progress=event.newValue?model.validate(JSON.parse(event.newValue)):{};render();message('Progres diperbarui dari tab lain.');}catch{message('Perubahan dari tab lain tidak valid; progres saat ini dipertahankan.',true);}}});
+ window.addEventListener('storage',event=>{if(event.key===storageKey()){try{progress=event.newValue?model.validate(JSON.parse(event.newValue)):{};render();message('Draf diperbarui dari tab lain. Simpan ke Google Drive bila ingin mengunggahnya.');window.dispatchEvent(new CustomEvent('reading-change',{detail:{remote:false}}));}catch{message('Perubahan dari tab lain tidak valid; progres saat ini dipertahankan.',true);}}});
  window.jagadReading={get:()=>JSON.parse(JSON.stringify(payload())),validate:model.validate,validatePatches:model.validatePatches,merge:model.merge,diff:model.diff,apply:entries=>{progress=model.validate({schema:SCHEMA,version:VERSION,entries});save(false);render();}};
+ function normalizeCloud(data){
+   if(!data||data.projectId!==PROJECT)throw Error('Data bukan milik aplikasi bacaan ini.');
+   const entries=model.validate(data);
+   return {projectId:PROJECT,schema:SCHEMA,version:VERSION,entries:Object.fromEntries(Object.keys(entries).sort().map(id=>[id,entries[id]]))};
+ }
+ const cloudPayload=()=>normalizeCloud({...payload(),projectId:PROJECT});
+ function applyCloud(data){progress=normalizeCloud(data).entries;save(false);render();}
+ function switchCloudAccount(uid){
+   const before=cloudPayload(),previousScope=accountScope;accountScope=uid;
+   let cached=null;try{const raw=localStorage.getItem(storageKey());if(raw)cached=model.validate(JSON.parse(raw));}catch{}
+   progress=cached||{};
+   const anonymousDraft=Boolean(uid&&!cached&&!previousScope&&Object.keys(before.entries).length);
+   if(anonymousDraft)progress=before.entries;
+   save(false);render();return {hasCache:!!cached,anonymousDraft:anonymousDraft?{local:before}:null};
+ }
+ window.readingBridge={read:cloudPayload,validate:normalizeCloud,apply:applyCloud,account:switchCloudAccount,projectId:()=>PROJECT,language:()=>'id',flush:()=>true};
  function showPage(){
    const monitor=location.hash==='#monitor';
    $('checklist-page').hidden=monitor;$('monitor-page').hidden=!monitor;
